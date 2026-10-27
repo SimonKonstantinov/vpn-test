@@ -1,0 +1,26 @@
+[
+  {
+    "name": "01-REALITY-Vision-01-reality-vision",
+    "transport": "tcp",
+    "port": 2443,
+    "curl_exit": 0,
+    "ip_and_seconds": "77.221.138.191|1.630852",
+    "tested_at": "2026-10-26T23:27:47.1667457+03:00"
+  },
+  {
+    "name": "02-XHTTP-REALITY-02-xhttp-reality",
+    "transport": "xhttp",
+    "port": 3443,
+    "curl_exit": 0,
+    "ip_and_seconds": "77.221.138.191|0.624510",
+    "tested_at": "2026-10-26T23:27:50.9217573+03:00"
+  },
+  {
+    "name": "03-Hysteria2-TLS-03-hysteria2",
+    "transport": "hysteria2",
+    "port": 4443,
+    "curl_exit": 0,
+    "ip_and_seconds": "77.221.138.191|0.806384",
+    "tested_at": "2026-10-26T23:27:54.8061509+03:00"
+  }
+]

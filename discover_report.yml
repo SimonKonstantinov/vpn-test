@@ -1,0 +1,40 @@
+---
+- name: Create analyst-friendly VPS discovery report
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+  vars:
+    report_file: "/home/ansible/vps-discovery-{{ ansible_date_time.iso8601_basic_short }}.html"
+  tasks:
+    - name: Check listening sockets
+      ansible.builtin.command: ss -lntp
+      register: sockets
+      changed_when: false
+
+    - name: Create HTML report
+      ansible.builtin.copy:
+        dest: "{{ report_file }}"
+        mode: "0644"
+        content: |
+          <!doctype html><html lang="ru"><meta charset="utf-8"><title>VPS discovery report</title>
+          <style>body{font:16px Segoe UI,Arial;max-width:1000px;margin:30px auto;color:#202124}h1{color:#17365d}h2{border-bottom:1px solid #ddd;padding-top:18px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ddd;padding:9px;text-align:left}th{background:#eef3f8}.ok{color:#087f23;font-weight:600}pre{background:#f5f5f5;padding:14px;white-space:pre-wrap}</style>
+          <h1>Отчёт обследования VPS</h1>
+          <p><b>Назначение:</b> инвентаризация сервера перед эксплуатацией VPN</p>
+          <table><tr><th>Параметр</th><th>Значение</th></tr>
+          <tr><td>Имя хоста</td><td>{{ ansible_hostname }}</td></tr>
+          <tr><td>Операционная система</td><td>{{ ansible_distribution }} {{ ansible_distribution_version }}</td></tr>
+          <tr><td>Ядро</td><td>{{ ansible_kernel }}</td></tr>
+          <tr><td>Архитектура</td><td>{{ ansible_architecture }}</td></tr>
+          <tr><td>IPv4-адреса</td><td>{{ ansible_all_ipv4_addresses | join(', ') }}</td></tr>
+          <tr><td>CPU</td><td>{{ ansible_processor_vcpus }} vCPU</td></tr>
+          <tr><td>RAM</td><td>{{ (ansible_memtotal_mb / 1024) | round(1) }} GB</td></tr>
+          </table>
+          <h2>Сетевые слушатели</h2><pre>{{ sockets.stdout | e }}</pre>
+          <h2>Аналитическая интерпретация</h2>
+          <ul><li class="ok">Сервер идентифицирован: {{ ansible_hostname }}</li><li class="ok">Сетевые сокеты получены командой ss</li><li>Публичный VPN-порт следует сопоставлять с конфигурацией Xray и правилами firewall.</li><li>Неиспользуемые публичные слушатели рекомендуется закрыть.</li></ul>
+          <p><small>Сформировано: {{ ansible_date_time.iso8601 }}</small></p></html>
+
+    - name: Show report path
+      ansible.builtin.debug:
+        msg: "{{ report_file }}"

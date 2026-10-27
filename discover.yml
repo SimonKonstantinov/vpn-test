@@ -1,0 +1,22 @@
+---
+- name: Discover AEZA VPS safely
+  hosts: localhost
+  connection: local
+  gather_facts: true
+  become: false
+  tasks:
+    - name: Show host facts
+      ansible.builtin.debug:
+        msg:
+          - "hostname={{ ansible_hostname }}"
+          - "os={{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "kernel={{ ansible_kernel }}"
+          - "addresses={{ ansible_all_ipv4_addresses | join(',') }}"
+          - "architecture={{ ansible_architecture }}"
+    - name: Check SSH listener
+      ansible.builtin.command: ss -lnt
+      register: ssh_sockets
+      changed_when: false
+    - name: Print SSH listener state
+      ansible.builtin.debug:
+        var: ssh_sockets.stdout_lines

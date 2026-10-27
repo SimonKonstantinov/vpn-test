@@ -1,0 +1,111 @@
+---
+- name: Collect server observations without claiming a client VPN test
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+  vars:
+    report_dir: /var/log/vpn-report
+  tasks:
+    - name: Create report directory
+      ansible.builtin.file:
+        path: "{{ report_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+    - name: Check services
+      ansible.builtin.command:
+        argv: [systemctl, is-active, "{{ item }}"]
+      loop: [xray, docker, vpn-ip-renew.timer]
+      register: services
+      changed_when: false
+      failed_when: false
+    - name: List running containers
+      ansible.builtin.command: docker ps
+      register: containers
+      changed_when: false
+      failed_when: false
+    - name: Observe TCP and UDP listeners
+      ansible.builtin.command: ss -lntup
+      register: sockets
+      changed_when: false
+      failed_when: false
+    - name: Check server outbound HTTPS
+      ansible.builtin.uri:
+        url: "{{ item }}"
+        timeout: 15
+        return_content: false
+      loop: [https://api.ipify.org, https://example.com, https://www.google.com]
+      register: websites
+      failed_when: false
+      changed_when: false
+    - name: Read Grafana health
+      ansible.builtin.uri:
+        url: http://127.0.0.1:3000/api/health
+        timeout: 5
+        return_content: true
+      register: grafana
+      failed_when: false
+      changed_when: false
+    - name: Read Prometheus targets
+      ansible.builtin.command:
+        argv: [docker, exec, vpn-monitoring-prometheus-1, wget, -qO-, 'http://localhost:9090/api/v1/targets']
+      register: prometheus
+      failed_when: false
+      changed_when: false
+    - name: Read certificate validity
+      ansible.builtin.command:
+        argv: [openssl, x509, -in, /etc/letsencrypt/live/vpn-ip/fullchain.pem, -noout, -dates]
+      register: certificate
+      failed_when: false
+      changed_when: false
+    - name: Assemble observations
+      ansible.builtin.set_fact:
+        observations:
+          generated_at: "{{ ansible_facts['date_time']['iso8601'] }}"
+          host: "{{ ansible_facts['hostname'] }}"
+          os: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+          vcpus: "{{ ansible_facts['processor_vcpus'] }}"
+          memory_mb: "{{ ansible_facts['memtotal_mb'] }}"
+          services: "{{ services.results | map(attribute='stdout') | list }}"
+          service_return_codes: "{{ services.results | map(attribute='rc') | list }}"
+          service_order: [xray, docker, vpn-ip-renew.timer]
+          containers: "{{ containers.stdout | default('') }}"
+          sockets: "{{ sockets.stdout | default('') }}"
+          https_urls: "{{ websites.results | map(attribute='item') | list }}"
+          https_status: "{{ websites.results | map(attribute='status', default=-1) | list }}"
+          grafana_http_status: "{{ grafana.status | default(-1) }}"
+          grafana: "{{ grafana.json | default({}) }}"
+          prometheus_rc: "{{ prometheus.rc }}"
+          prometheus_targets_json: "{{ prometheus.stdout | default('') }}"
+          certificate_rc: "{{ certificate.rc }}"
+          certificate_dates: "{{ certificate.stdout | default('') }}"
+          limitation: Server observations only; no client tunnel, DNS/WebRTC/IPv6 leak or throughput test.
+    - name: Write machine-readable report
+      ansible.builtin.copy:
+        dest: "{{ report_dir }}/latest.json"
+        mode: "0640"
+        content: "{{ observations | to_nice_json }}"
+    - name: Write human-readable report
+      ansible.builtin.copy:
+        dest: "{{ report_dir }}/latest.html"
+        mode: "0640"
+        content: |
+          <!doctype html><html lang="ru"><meta charset="utf-8"><title>CompassVPN — состояние сервера</title>
+          <style>body{font:17px system-ui;max-width:1050px;margin:40px auto;padding:20px;color:#182838}h1,h2{color:#174f70}pre{white-space:pre-wrap;background:#eef3f6;padding:16px}li{margin:8px}</style>
+          <h1>CompassVPN: состояние сервера</h1>
+          <p>{{ observations.generated_at | e }} · {{ observations.host | e }} · {{ observations.os | e }}</p>
+          <p>CPU: {{ observations.vcpus }}; RAM: {{ observations.memory_mb }} MiB.</p>
+          <h2>Службы</h2><ul>{% for r in services.results %}<li>{{ r.item | e }}: <b>{{ r.stdout | default('нет данных') | e }}</b>; код {{ r.rc }}</li>{% endfor %}</ul>
+          <h2>Grafana и Prometheus</h2><p>Grafana: HTTP {{ grafana.status | default(-1) }}; база: {{ (grafana.json | default({})).get('database', 'нет данных') | e }}.</p>
+          <pre>{{ prometheus.stdout | default('нет данных') | e }}</pre>
+          <h2>HTTPS с сервера</h2><ul>{% for r in websites.results %}<li>{{ r.item | e }}: HTTP {{ r.status | default(-1) }}. {{ r.msg | default('') | e }}</li>{% endfor %}</ul>
+          <h2>Сертификат</h2><pre>{{ certificate.stdout | default('нет данных') | e }}</pre>
+          <h2>Контейнеры</h2><pre>{{ containers.stdout | default('нет данных') | e }}</pre>
+          <h2>Слушающие порты</h2><pre>{{ sockets.stdout | default('нет данных') | e }}</pre>
+          <h2>Как понимать результат</h2><p>active означает, что процесс службы запущен. HTTP 200 означает ответ сайта с VPS. HTTP -1 означает ошибку соединения; другие коды требуют анализа. Эти проверки не подтверждают работу VPN на телефоне.</p>
+          <p>Утечки DNS, IPv6, WebRTC, доступность через Билайн и скорость клиента здесь не проверяются. Сетевые метрики текущего node-exporter относятся к контейнеру, а не ко всему VPS.</p></html>
+    - name: Show saved report paths
+      ansible.builtin.debug:
+        msg: "{{ report_dir }}/latest.html and {{ report_dir }}/latest.json"

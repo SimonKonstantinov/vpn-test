@@ -1,0 +1,39 @@
+<!doctype html><html lang="ru"><meta charset="utf-8"><title>CompassVPN — состояние сервера</title>
+<style>body{font:17px system-ui;max-width:1050px;margin:40px auto;padding:20px;color:#182838}h1,h2{color:#174f70}pre{white-space:pre-wrap;background:#eef3f6;padding:16px}li{margin:8px}</style>
+<h1>CompassVPN: состояние сервера</h1>
+<p>2026-10-27T11:21:39Z · scornful-tan · Ubuntu 26.04</p>
+<p>CPU: 1; RAM: 3911 MiB.</p>
+<h2>Службы</h2><ul><li>xray: <b>active</b>; код 0</li><li>docker: <b>active</b>; код 0</li><li>vpn-ip-renew.timer: <b>active</b>; код 0</li></ul>
+<h2>Grafana и Prometheus</h2><p>Grafana: HTTP 200; база: ok.</p>
+<pre>{&#34;status&#34;:&#34;success&#34;,&#34;data&#34;:{&#34;activeTargets&#34;:[{&#34;discoveredLabels&#34;:{&#34;__address__&#34;:&#34;node-exporter:9100&#34;,&#34;__metrics_path__&#34;:&#34;/metrics&#34;,&#34;__scheme__&#34;:&#34;http&#34;,&#34;__scrape_interval__&#34;:&#34;15s&#34;,&#34;__scrape_timeout__&#34;:&#34;10s&#34;,&#34;job&#34;:&#34;node&#34;},&#34;labels&#34;:{&#34;instance&#34;:&#34;node-exporter:9100&#34;,&#34;job&#34;:&#34;node&#34;},&#34;scrapePool&#34;:&#34;node&#34;,&#34;scrapeUrl&#34;:&#34;http://node-exporter:9100/metrics&#34;,&#34;globalUrl&#34;:&#34;http://node-exporter:9100/metrics&#34;,&#34;lastError&#34;:&#34;&#34;,&#34;lastScrape&#34;:&#34;2026-10-27T11:21:34.948406407Z&#34;,&#34;lastScrapeDuration&#34;:0.016896581,&#34;health&#34;:&#34;up&#34;,&#34;scrapeInterval&#34;:&#34;15s&#34;,&#34;scrapeTimeout&#34;:&#34;10s&#34;}],&#34;droppedTargets&#34;:[],&#34;droppedTargetCounts&#34;:{&#34;node&#34;:0}}}</pre>
+<h2>HTTPS с сервера</h2><ul><li>https://api.ipify.org: HTTP 200. OK (14 bytes)</li><li>https://example.com: HTTP 200. OK (unknown bytes)</li><li>https://www.google.com: HTTP 200. OK (unknown bytes)</li></ul>
+<h2>Сертификат</h2><pre>notBefore=Oct 26 19:25:31 2026 GMT
+notAfter=Nov  2 11:25:30 2026 GMT</pre>
+<h2>Контейнеры</h2><pre>CONTAINER ID   IMAGE                       COMMAND                  CREATED        STATUS        PORTS                                                                                                                                                                                                          NAMES
+d3885ab17285   1628adbd9bed                &#34;/app/DockerEntrypoi…&#34;   15 hours ago   Up 15 hours   0.0.0.0:2096-&gt;2096/tcp, [::]:2096-&gt;2096/tcp, 0.0.0.0:2443-&gt;2443/tcp, [::]:2443-&gt;2443/tcp, 127.0.0.1:2053-&gt;2053/tcp, 0.0.0.0:3443-&gt;3443/tcp, [::]:3443-&gt;3443/tcp, 0.0.0.0:4443-&gt;4443/udp, [::]:4443-&gt;4443/udp   vpn-3x-ui
+996a8a8ffec5   grafana/grafana:11.2.0      &#34;/run.sh&#34;                16 hours ago   Up 16 hours   127.0.0.1:3000-&gt;3000/tcp                                                                                                                                                                                       vpn-monitoring-grafana-1
+13634b9b1871   prom/prometheus:v2.54.1     &#34;/bin/prometheus --c…&#34;   16 hours ago   Up 16 hours   9090/tcp                                                                                                                                                                                                       vpn-monitoring-prometheus-1
+de3a4d83d678   prom/node-exporter:v1.8.2   &#34;/bin/node_exporter …&#34;   16 hours ago   Up 16 hours   9100/tcp                                                                                                                                                                                                       vpn-monitoring-node-exporter-1</pre>
+<h2>Слушающие порты</h2><pre>Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+udp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*    users:((&#34;systemd-resolve&#34;,pid=16103,fd=19))
+udp   UNCONN 0      0      127.0.0.53%lo:53         0.0.0.0:*    users:((&#34;systemd-resolve&#34;,pid=16103,fd=17))
+udp   UNCONN 0      0          127.0.0.1:323        0.0.0.0:*    users:((&#34;chronyd&#34;,pid=36049,fd=4))
+udp   UNCONN 0      0            0.0.0.0:4443       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=94339,fd=7))
+udp   UNCONN 0      0              [::1]:323           [::]:*    users:((&#34;chronyd&#34;,pid=36049,fd=5))
+udp   UNCONN 0      0               [::]:4443          [::]:*    users:((&#34;docker-proxy&#34;,pid=94343,fd=7))
+tcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:((&#34;systemd-resolve&#34;,pid=16103,fd=20))
+tcp   LISTEN 0      4096         0.0.0.0:2443       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=94300,fd=7))
+tcp   LISTEN 0      4096       127.0.0.1:3000       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=86394,fd=7))
+tcp   LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:((&#34;sshd&#34;,pid=22928,fd=3),(&#34;systemd&#34;,pid=1,fd=200))
+tcp   LISTEN 0      4096         0.0.0.0:2096       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=94282,fd=7))
+tcp   LISTEN 0      4096       127.0.0.1:45321      0.0.0.0:*    users:((&#34;containerd&#34;,pid=82199,fd=15))
+tcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=94269,fd=7))
+tcp   LISTEN 0      4096         0.0.0.0:3443       0.0.0.0:*    users:((&#34;docker-proxy&#34;,pid=94320,fd=7))
+tcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:((&#34;systemd-resolve&#34;,pid=16103,fd=18))
+tcp   LISTEN 0      4096            [::]:2443          [::]:*    users:((&#34;docker-proxy&#34;,pid=94304,fd=7))
+tcp   LISTEN 0      4096               *:443              *:*    users:((&#34;xray&#34;,pid=79672,fd=4))
+tcp   LISTEN 0      4096            [::]:22            [::]:*    users:((&#34;sshd&#34;,pid=22928,fd=4),(&#34;systemd&#34;,pid=1,fd=201))
+tcp   LISTEN 0      4096            [::]:2096          [::]:*    users:((&#34;docker-proxy&#34;,pid=94286,fd=7))
+tcp   LISTEN 0      4096            [::]:3443          [::]:*    users:((&#34;docker-proxy&#34;,pid=94324,fd=7))                 </pre>
+<h2>Как понимать результат</h2><p>active означает, что процесс службы запущен. HTTP 200 означает ответ сайта с VPS. HTTP -1 означает ошибку соединения; другие коды требуют анализа. Эти проверки не подтверждают работу VPN на телефоне.</p>
+<p>Утечки DNS, IPv6, WebRTC, доступность через Билайн и скорость клиента здесь не проверяются. Сетевые метрики текущего node-exporter относятся к контейнеру, а не ко всему VPS.</p></html>

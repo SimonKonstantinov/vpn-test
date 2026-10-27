@@ -1,0 +1,45 @@
+{
+    "certificate_dates": "notBefore=Oct 26 19:25:31 2026 GMT\nnotAfter=Nov  2 11:25:30 2026 GMT",
+    "certificate_rc": 0,
+    "containers": "CONTAINER ID   IMAGE                       COMMAND                  CREATED        STATUS        PORTS                                                                                                                                                                                                          NAMES\nd3885ab17285   1628adbd9bed                \"/app/DockerEntrypoi\u2026\"   15 hours ago   Up 15 hours   0.0.0.0:2096->2096/tcp, [::]:2096->2096/tcp, 0.0.0.0:2443->2443/tcp, [::]:2443->2443/tcp, 127.0.0.1:2053->2053/tcp, 0.0.0.0:3443->3443/tcp, [::]:3443->3443/tcp, 0.0.0.0:4443->4443/udp, [::]:4443->4443/udp   vpn-3x-ui\n996a8a8ffec5   grafana/grafana:11.2.0      \"/run.sh\"                16 hours ago   Up 16 hours   127.0.0.1:3000->3000/tcp                                                                                                                                                                                       vpn-monitoring-grafana-1\n13634b9b1871   prom/prometheus:v2.54.1     \"/bin/prometheus --c\u2026\"   16 hours ago   Up 16 hours   9090/tcp                                                                                                                                                                                                       vpn-monitoring-prometheus-1\nde3a4d83d678   prom/node-exporter:v1.8.2   \"/bin/node_exporter \u2026\"   16 hours ago   Up 16 hours   9100/tcp                                                                                                                                                                                                       vpn-monitoring-node-exporter-1",
+    "generated_at": "2026-10-27T11:21:39Z",
+    "grafana": {
+        "commit": "2a88694fd3ced0335bf3726cc5d0adc2d1858855",
+        "database": "ok",
+        "version": "11.2.0"
+    },
+    "grafana_http_status": 200,
+    "host": "scornful-tan",
+    "https_status": [
+        200,
+        200,
+        200
+    ],
+    "https_urls": [
+        "https://api.ipify.org",
+        "https://example.com",
+        "https://www.google.com"
+    ],
+    "limitation": "Server observations only; no client tunnel, DNS/WebRTC/IPv6 leak or throughput test.",
+    "memory_mb": 3911,
+    "os": "Ubuntu 26.04",
+    "prometheus_rc": 0,
+    "prometheus_targets_json": "{\"status\":\"success\",\"data\":{\"activeTargets\":[{\"discoveredLabels\":{\"__address__\":\"node-exporter:9100\",\"__metrics_path__\":\"/metrics\",\"__scheme__\":\"http\",\"__scrape_interval__\":\"15s\",\"__scrape_timeout__\":\"10s\",\"job\":\"node\"},\"labels\":{\"instance\":\"node-exporter:9100\",\"job\":\"node\"},\"scrapePool\":\"node\",\"scrapeUrl\":\"http://node-exporter:9100/metrics\",\"globalUrl\":\"http://node-exporter:9100/metrics\",\"lastError\":\"\",\"lastScrape\":\"2026-10-27T11:21:34.948406407Z\",\"lastScrapeDuration\":0.016896581,\"health\":\"up\",\"scrapeInterval\":\"15s\",\"scrapeTimeout\":\"10s\"}],\"droppedTargets\":[],\"droppedTargetCounts\":{\"node\":0}}}",
+    "service_order": [
+        "xray",
+        "docker",
+        "vpn-ip-renew.timer"
+    ],
+    "service_return_codes": [
+        0,
+        0,
+        0
+    ],
+    "services": [
+        "active",
+        "active",
+        "active"
+    ],
+    "sockets": "Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                                  \nudp   UNCONN 0      0         127.0.0.54:53         0.0.0.0:*    users:((\"systemd-resolve\",pid=16103,fd=19))             \nudp   UNCONN 0      0      127.0.0.53%lo:53         0.0.0.0:*    users:((\"systemd-resolve\",pid=16103,fd=17))             \nudp   UNCONN 0      0          127.0.0.1:323        0.0.0.0:*    users:((\"chronyd\",pid=36049,fd=4))                      \nudp   UNCONN 0      0            0.0.0.0:4443       0.0.0.0:*    users:((\"docker-proxy\",pid=94339,fd=7))                 \nudp   UNCONN 0      0              [::1]:323           [::]:*    users:((\"chronyd\",pid=36049,fd=5))                      \nudp   UNCONN 0      0               [::]:4443          [::]:*    users:((\"docker-proxy\",pid=94343,fd=7))                 \ntcp   LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:((\"systemd-resolve\",pid=16103,fd=20))             \ntcp   LISTEN 0      4096         0.0.0.0:2443       0.0.0.0:*    users:((\"docker-proxy\",pid=94300,fd=7))                 \ntcp   LISTEN 0      4096       127.0.0.1:3000       0.0.0.0:*    users:((\"docker-proxy\",pid=86394,fd=7))                 \ntcp   LISTEN 0      4096         0.0.0.0:22         0.0.0.0:*    users:((\"sshd\",pid=22928,fd=3),(\"systemd\",pid=1,fd=200))\ntcp   LISTEN 0      4096         0.0.0.0:2096       0.0.0.0:*    users:((\"docker-proxy\",pid=94282,fd=7))                 \ntcp   LISTEN 0      4096       127.0.0.1:45321      0.0.0.0:*    users:((\"containerd\",pid=82199,fd=15))                  \ntcp   LISTEN 0      4096       127.0.0.1:2053       0.0.0.0:*    users:((\"docker-proxy\",pid=94269,fd=7))                 \ntcp   LISTEN 0      4096         0.0.0.0:3443       0.0.0.0:*    users:((\"docker-proxy\",pid=94320,fd=7))                 \ntcp   LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:((\"systemd-resolve\",pid=16103,fd=18))             \ntcp   LISTEN 0      4096            [::]:2443          [::]:*    users:((\"docker-proxy\",pid=94304,fd=7))                 \ntcp   LISTEN 0      4096               *:443              *:*    users:((\"xray\",pid=79672,fd=4))                         \ntcp   LISTEN 0      4096            [::]:22            [::]:*    users:((\"sshd\",pid=22928,fd=4),(\"systemd\",pid=1,fd=201))\ntcp   LISTEN 0      4096            [::]:2096          [::]:*    users:((\"docker-proxy\",pid=94286,fd=7))                 \ntcp   LISTEN 0      4096            [::]:3443          [::]:*    users:((\"docker-proxy\",pid=94324,fd=7))                 ",
+    "vcpus": 1
+}

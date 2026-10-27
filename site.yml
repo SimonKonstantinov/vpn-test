@@ -1,0 +1,164 @@
+---
+- name: Deploy Xray VLESS REALITY
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars:
+    reality_target: "www.google.com:443"
+    reality_sni: "www.google.com"
+
+  tasks:
+    - name: Install required packages
+      ansible.builtin.apt:
+        name:
+          - curl
+          - openssl
+          - ca-certificates
+        state: present
+        update_cache: true
+
+    - name: Check existing configuration
+      ansible.builtin.stat:
+        path: /usr/local/etc/xray/config.json
+      register: existing_config
+
+    - name: Install Xray
+      ansible.builtin.shell: |
+        set -e
+        curl -fL https://github.com/XTLS/Xray-install/raw/main/install-release.sh -o /root/xray-install-release.sh
+        bash /root/xray-install-release.sh install
+      args:
+        creates: /usr/local/bin/xray
+
+    - name: Create Xray group
+      ansible.builtin.group:
+        name: xray
+        system: true
+
+    - name: Create Xray service account
+      ansible.builtin.user:
+        name: xray
+        group: xray
+        system: true
+        create_home: false
+        shell: /usr/sbin/nologin
+
+    - name: Set configuration directory permissions
+      ansible.builtin.file:
+        path: /usr/local/etc/xray
+        state: directory
+        owner: root
+        group: xray
+        mode: "0750"
+
+    - name: Bootstrap only when no configuration exists
+      when: not existing_config.stat.exists
+      block:
+        - name: Generate UUID
+          ansible.builtin.command: cat /proc/sys/kernel/random/uuid
+          register: xray_uuid
+          changed_when: false
+
+        - name: Generate REALITY private key
+          ansible.builtin.shell: |
+            xray x25519 | sed -n 's/^PrivateKey: //p'
+          register: reality_private_key
+          changed_when: false
+          no_log: true
+
+        - name: Generate REALITY public key
+          ansible.builtin.shell: |
+            xray x25519 -i "{{ reality_private_key.stdout | trim }}" | sed -n 's/^Password (PublicKey): //p'
+          register: reality_public_key
+          changed_when: false
+          no_log: true
+
+        - name: Generate short ID
+          ansible.builtin.command: openssl rand -hex 8
+          register: reality_short_id
+          changed_when: false
+
+        - name: Write Xray configuration
+          ansible.builtin.copy:
+            dest: /usr/local/etc/xray/config.json
+            owner: xray
+            group: xray
+            mode: "0640"
+            validate: /usr/local/bin/xray run -test -config %s
+            content: |
+              {
+                "log": {"loglevel": "warning"},
+                "inbounds": [{
+                  "listen": "0.0.0.0",
+                  "port": 443,
+                  "protocol": "vless",
+                  "settings": {
+                    "clients": [{"id": "{{ xray_uuid.stdout | trim }}", "flow": "xtls-rprx-vision"}],
+                    "decryption": "none"
+                  },
+                  "streamSettings": {
+                    "network": "raw",
+                    "security": "reality",
+                    "realitySettings": {
+                      "show": false,
+                      "target": "{{ reality_target }}",
+                      "xver": 0,
+                      "serverNames": ["{{ reality_sni }}"],
+                      "privateKey": "{{ reality_private_key.stdout | trim }}",
+                      "shortIds": ["{{ reality_short_id.stdout | trim }}"]
+                    }
+                  }
+                }],
+                "outbounds": [
+                  {"protocol": "freedom", "tag": "direct"},
+                  {"protocol": "blackhole", "tag": "blocked"}
+                ]
+              }
+          no_log: true
+          notify: Restart Xray
+
+    - name: Set configuration permissions
+      ansible.builtin.file:
+        path: /usr/local/etc/xray/config.json
+        owner: xray
+        group: xray
+        mode: "0640"
+
+    - name: Create service override directory
+      ansible.builtin.file:
+        path: /etc/systemd/system/xray.service.d
+        state: directory
+        mode: "0755"
+
+    - name: Set service account
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/xray.service.d/20-account.conf
+        mode: "0644"
+        content: |
+          [Service]
+          User=xray
+          Group=xray
+          AmbientCapabilities=CAP_NET_BIND_SERVICE
+          CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+      notify: Restart Xray
+
+    - name: Validate Xray configuration
+      ansible.builtin.command:
+        argv: [xray, run, -test, -config, /usr/local/etc/xray/config.json]
+      changed_when: false
+
+    - name: Enable Xray
+      ansible.builtin.systemd:
+        name: xray
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Restart Xray
+      ansible.builtin.systemd:
+        name: xray
+        state: restarted
+        daemon_reload: true

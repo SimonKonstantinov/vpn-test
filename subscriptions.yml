@@ -1,0 +1,35 @@
+---
+# Existing 3x-ui and valid vpn-ip certificate are required; see docs/OPERATIONS.md.
+- name: Maintain subscriptions on existing lab
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Check existing panel database
+      ansible.builtin.stat:
+        path: /opt/3x-ui/db/x-ui.db
+      register: panel_db
+    - name: Require existing initialized panel
+      ansible.builtin.assert:
+        that: panel_db.stat.exists
+        fail_msg: Initialize 3x-ui and the IP certificate before running this playbook.
+    - name: Install maintenance scripts
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/opt/3x-ui/{{ item }}"
+        owner: root
+        group: root
+        mode: "0700"
+      loop:
+        - publish_subscriptions.py
+        - create_test_inbounds.py
+    - name: Configure HTTPS subscriptions and renewal timer
+      ansible.builtin.command: python3 /opt/3x-ui/publish_subscriptions.py
+      changed_when: true
+      no_log: true
+    - name: Create missing lab clients without rotating existing ones
+      ansible.builtin.command: python3 /opt/3x-ui/create_test_inbounds.py
+      register: clients
+      changed_when: "'created on' in clients.stdout"
+      no_log: true

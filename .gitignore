@@ -1,0 +1,15 @@
+private/
+codex_server_key*
+*.log
+temporary-*.json
+vpn-report-*.json
+vpn-report-*.md
+pc-subscription-test.json
+inventory.ini
+__pycache__/
+*.zip
+*.pem
+*.key
+*.db
+*.sqlite*
+.env

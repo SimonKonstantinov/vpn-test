@@ -1,0 +1,154 @@
+---
+- name: Deploy Prometheus Grafana monitoring
+  hosts: localhost
+  connection: local
+  become: true
+  gather_facts: true
+
+  vars:
+    stack_dir: /opt/vpn-monitoring
+
+  tasks:
+    - name: Install Docker and compose
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-v2
+        state: present
+        update_cache: true
+
+    - name: Enable Docker
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Create stack directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ stack_dir }}"
+        - "{{ stack_dir }}/prometheus"
+        - "{{ stack_dir }}/grafana/provisioning/datasources"
+        - "{{ stack_dir }}/grafana/provisioning/dashboards"
+        - "{{ stack_dir }}/grafana/dashboards"
+
+    - name: Write Prometheus config
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/prometheus/prometheus.yml"
+        mode: "0644"
+        content: |
+          global:
+            scrape_interval: 15s
+          scrape_configs:
+            - job_name: node
+              static_configs:
+                - targets: ['node-exporter:9100']
+
+    - name: Write Grafana datasource provisioning
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/grafana/provisioning/datasources/prometheus.yml"
+        mode: "0644"
+        content: |
+          apiVersion: 1
+          datasources:
+            - name: Prometheus
+              uid: prometheus
+              type: prometheus
+              access: proxy
+              url: http://prometheus:9090
+              isDefault: true
+
+    - name: Write dashboard provisioning
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/grafana/provisioning/dashboards/default.yml"
+        mode: "0644"
+        content: |
+          apiVersion: 1
+          providers:
+            - name: CompassVPN
+              orgId: 1
+              folder: CompassVPN
+              type: file
+              disableDeletion: false
+              allowUiUpdates: true
+              options:
+                path: /var/lib/grafana/dashboards
+
+    - name: Write CompassVPN dashboard
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/grafana/dashboards/compassvpn.json"
+        mode: "0644"
+        content: |
+          {
+            "annotations":{"list":[]},"editable":true,"graphTooltip":0,"panels":[
+              {"type":"stat","title":"CPU usage","gridPos":{"h":4,"w":6,"x":0,"y":0},"targets":[{"expr":"100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)"}],"fieldConfig":{"defaults":{"unit":"percent"}}},
+              {"type":"stat","title":"Memory used","gridPos":{"h":4,"w":6,"x":6,"y":0},"targets":[{"expr":"(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"}],"fieldConfig":{"defaults":{"unit":"percent"}}},
+              {"type":"stat","title":"Disk used /","gridPos":{"h":4,"w":6,"x":12,"y":0},"targets":[{"expr":"100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})"}],"fieldConfig":{"defaults":{"unit":"percent"}}},
+              {"type":"stat","title":"Uptime","gridPos":{"h":4,"w":6,"x":18,"y":0},"targets":[{"expr":"time() - node_boot_time_seconds"}],"fieldConfig":{"defaults":{"unit":"s"}}},
+              {"type":"timeseries","title":"CPU and memory","gridPos":{"h":8,"w":12,"x":0,"y":4},"targets":[{"expr":"100 - avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100","legendFormat":"CPU %"},{"expr":"100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)","legendFormat":"Memory %"}]},
+              {"type":"timeseries","title":"Network traffic","gridPos":{"h":8,"w":12,"x":12,"y":4},"targets":[{"expr":"rate(node_network_receive_bytes_total{device!~\"lo\"}[5m])","legendFormat":"RX"},{"expr":"rate(node_network_transmit_bytes_total{device!~\"lo\"}[5m])","legendFormat":"TX"}],"fieldConfig":{"defaults":{"unit":"Bps"}}}
+            ],"schemaVersion":39,"title":"CompassVPN Dashboard","uid":"compassvpn","version":1
+          }
+
+    - name: Write compose file
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/compose.yml"
+        mode: "0644"
+        content: |
+          services:
+            node-exporter:
+              image: prom/node-exporter:v1.8.2
+              restart: unless-stopped
+              command: ['--path.rootfs=/host']
+              volumes:
+                - /:/host:ro,rslave
+            prometheus:
+              image: prom/prometheus:v2.54.1
+              restart: unless-stopped
+              volumes:
+                - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+                - prometheus-data:/prometheus
+              depends_on: [node-exporter]
+            grafana:
+              image: grafana/grafana:11.2.0
+              restart: unless-stopped
+              ports: ['127.0.0.1:3000:3000']
+              environment:
+                GF_SECURITY_ADMIN_USER: admin
+                GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+                GF_USERS_ALLOW_SIGN_UP: 'false'
+              secrets: [grafana_admin_password]
+              volumes:
+                - grafana-data:/var/lib/grafana
+                - ./grafana/provisioning:/etc/grafana/provisioning:ro
+                - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+              depends_on: [prometheus]
+          secrets:
+            grafana_admin_password:
+              file: ./grafana_admin_password
+          volumes:
+            prometheus-data:
+            grafana-data:
+
+    - name: Create Grafana password file
+      ansible.builtin.copy:
+        dest: "{{ stack_dir }}/grafana_admin_password"
+        content: "{{ lookup('ansible.builtin.password', '/dev/null length=24 chars=ascii_letters,digits') }}\n"
+        owner: "472"
+        group: "472"
+        mode: "0400"
+        force: false
+      no_log: true
+
+    - name: Start monitoring stack
+      ansible.builtin.command: docker compose -f compose.yml up -d
+      args:
+        chdir: "{{ stack_dir }}"
+      changed_when: true
+
+    - name: Show Grafana URL
+      ansible.builtin.debug:
+        msg: "Grafana: http://127.0.0.1:3000 via SSH tunnel (user admin; password is stored in {{ stack_dir }}/grafana_admin_password)"
